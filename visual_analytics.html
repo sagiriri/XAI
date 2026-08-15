@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAI Benchmark — Visual Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1117;
+    --bg-grid: rgba(255,255,255,0.025);
+    --panel:#151a23;
+    --panel-2:#1b212c;
+    --line:#262e3d;
+    --text:#e7eaf0;
+    --muted:#8b93a5;
+    --muted-2:#5c6579;
+    --model-accent:#5eead4;   /* teal — model performance family */
+    --model-accent-dim:#2c6b62;
+    --xai-accent:#f0a868;     /* warm amber — XAI/explanation family */
+    --xai-accent-dim:#8a5e33;
+    --bad:#ef6f6f;
+    --good:#6fce8f;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/100% 28px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 100%,
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+    border-bottom:1px solid var(--line); padding-bottom:20px; margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted-2); margin:0 0 6px;
+  }
+  h1{margin:0; font-size:28px; font-weight:700; letter-spacing:-.01em;}
+  .sub{color:var(--muted); font-size:14px; margin-top:6px; max-width:520px; line-height:1.5;}
+  .meta{font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right;}
+  .meta b{color:var(--text); font-weight:600;}
+
+  .toolbar{
+    display:flex; align-items:center; gap:12px; margin-bottom:28px;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 16px;
+    flex-wrap:wrap;
+  }
+  .toolbar label{
+    font-family:var(--mono); font-size:12px; color:var(--muted); cursor:pointer;
+    border:1px solid var(--line); padding:7px 12px; border-radius:6px; background:var(--panel-2);
+    transition:border-color .15s;
+  }
+  .toolbar label:hover{border-color:var(--model-accent);}
+  #fileInput{display:none;}
+  #dataStatus{font-family:var(--mono); font-size:12px; color:var(--muted-2);}
+  #resetBtn{
+    font-family:var(--mono); font-size:12px; color:var(--muted); background:none;
+    border:1px solid var(--line); padding:7px 12px; border-radius:6px; cursor:pointer;
+  }
+  #resetBtn:hover{border-color:var(--xai-accent); color:var(--xai-accent);}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:22px 24px; margin-bottom:22px;
+  }
+  .panel-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; flex-wrap:wrap; gap:8px;}
+  .panel-title{font-size:15px; font-weight:600;}
+  .panel-tag{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:4px;}
+  .tag-model{background:rgba(94,234,212,.12); color:var(--model-accent);}
+  .tag-xai{background:rgba(240,168,104,.12); color:var(--xai-accent);}
+  .panel-note{font-size:12.5px; color:var(--muted); margin:2px 0 16px; line-height:1.5;}
+  canvas{max-height:320px;}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+  @media (max-width:860px){.grid2{grid-template-columns:1fr;}}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line);}
+  th{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--muted-2); font-weight:500;
+  }
+  td{font-family:var(--mono); font-size:12.5px;}
+  td.name{font-family:var(--sans); font-weight:600; text-transform:capitalize;}
+  tr:last-child td{border-bottom:none;}
+
+  /* Score matrix — signature element */
+  .matrix{border-collapse:separate; border-spacing:6px;}
+  .matrix th{padding:6px 8px;}
+  .cell{
+    position:relative; border-radius:8px; padding:14px 10px; text-align:center;
+    border:1px solid var(--line); font-family:var(--mono);
+  }
+  .cell .score{font-size:22px; font-weight:700; display:block;}
+  .cell .lbl{font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;}
+  .rowhead{
+    font-family:var(--sans); font-weight:600; font-size:13px; text-transform:capitalize;
+    color:var(--text); padding-right:6px; white-space:nowrap;
+  }
+  .colhead{
+    font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); text-align:center;
+  }
+
+  .legend{display:flex; gap:18px; align-items:center; font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:14px; flex-wrap:wrap;}
+  .swatch{width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:6px; vertical-align:middle;}
+
+  .callout{
+    border-left:3px solid var(--xai-accent); background:rgba(240,168,104,.06);
+    padding:12px 16px; border-radius:0 6px 6px 0; font-size:13px; color:var(--muted); line-height:1.6;
+  }
+  .callout b{color:var(--text);}
+
+  footer{
+    margin-top:36px; padding-top:18px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; color:var(--muted-2); line-height:1.7;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">XAI Benchmark Platform / Module 05</p>
+      <h1>Visual Analytics</h1>
+      <p class="sub">Model performance and explanation-quality results across every (dataset × model × XAI method) run, read straight from the Benchmark Engine's output CSV.</p>
+    </div>
+    <div class="meta" id="metaBox">
+      <div><b id="metaDataset">—</b></div>
+      <div id="metaCount">— result rows</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label for="fileInput">↑ Load benchmark_results.csv</label>
+    <input id="fileInput" type="file" accept=".csv">
+    <button id="resetBtn">Reset to bundled data</button>
+    <span id="dataStatus">Showing real benchmark runs</span>
+  </div>
+
+  <div class="toolbar" id="datasetTabs" style="gap:8px;"></div>
+
+  <div class="callout" id="lowAccCallout" style="margin-bottom:24px; display:none;">
+    ⚠ <b>Smoke-test data loaded.</b> Model accuracy is ~10% (near random-guess on 10 classes) because these are the untrained sanity-check runs, not a full training pass. Explanation-quality numbers (faithfulness, stability, complexity) are still meaningful as a pipeline check, but re-run the Benchmark Engine after full training and load that CSV here for report-ready results.
+  </div>
+
+  <!-- MODEL PERFORMANCE -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Model Performance</div>
+      <div class="panel-tag tag-model">Model Module</div>
+    </div>
+    <p class="panel-note">Accuracy / Precision / Recall / F1 / AUC per model, one bar group per model (identical across its XAI-method rows — these are model-level, not explanation-level, metrics).</p>
+    <canvas id="modelPerfChart"></canvas>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Inference Time vs. Model Size</div>
+        <div class="panel-tag tag-model">Model Module</div>
+      </div>
+      <p class="panel-note">Cost side of the performance/cost trade-off — bigger, slower models aren't automatically better.</p>
+      <canvas id="costChart"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Explanation Runtime</div>
+        <div class="panel-tag tag-xai">XAI Module</div>
+      </div>
+      <p class="panel-note">Wall-clock seconds to produce one explanation, by method — this is usually where SHAP pays its accuracy off in speed.</p>
+      <canvas id="runtimeChart"></canvas>
+    </div>
+  </div>
+
+  <!-- EXPLAINABILITY SCORE MATRIX -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Explainability Score</div>
+      <div class="panel-tag tag-xai">Composite</div>
+    </div>
+    <p class="panel-note">One composite 0–100 score per (model × XAI method), averaging normalized insertion-AUC, (1 − deletion-AUC), stability, (1 − max-sensitivity) and (1 − entropy). Higher = explanations that are faithful, stable, and concise for this model. See formula note in the footer.</p>
+    <div id="scoreMatrixHost" style="overflow-x:auto;"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:#3a2e2e"></span>Lower</span>
+      <span><span class="swatch" style="background:#5c4a2e"></span></span>
+      <span><span class="swatch" style="background:#3f5c3a"></span></span>
+      <span><span class="swatch" style="background:#2f6b4e"></span>Higher</span>
+    </div>
+  </div>
+
+  <!-- GROUND-TRUTH PART OVERLAP (FunnyBirds only) -->
+  <div class="panel" id="groundTruthPanel" style="display:none;">
+    <div class="panel-head">
+      <div class="panel-title">Ground-Truth Part Overlap</div>
+      <div class="panel-tag tag-xai">FunnyBirds only</div>
+    </div>
+    <p class="panel-note">Of each explanation's most important pixels, what fraction actually land on a real bird part (beak/eye/foot/wing) vs. background clutter? Unlike every other metric on this page, this checks against real ground truth rather than the explanation's own internal consistency — computed via <code>funnybirds_ground_truth.py</code> using the dataset's canonical part-map colors.</p>
+    <canvas id="groundTruthChart"></canvas>
+  </div>
+
+  <!-- FAITHFULNESS -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Faithfulness — Deletion vs. Insertion AUC</div>
+      <div class="panel-tag tag-xai">XAI Module</div>
+    </div>
+    <p class="panel-note">Deletion AUC: lower is better (confidence should crash fast when top-ranked pixels are removed). Insertion AUC: higher is better (confidence should climb fast when they're revealed). Grouped by model, one pair of bars per XAI method.</p>
+    <canvas id="faithChart"></canvas>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Stability</div>
+        <div class="panel-tag tag-xai">XAI Module</div>
+      </div>
+      <p class="panel-note">Cosine similarity of the explanation under small input noise — higher means the explanation doesn't flip around for near-identical inputs.</p>
+      <canvas id="stabilityChart"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Complexity (Entropy)</div>
+        <div class="panel-tag tag-xai">XAI Module</div>
+      </div>
+      <p class="panel-note">Normalized Shannon entropy of the explanation map — lower means the map concentrates on fewer regions, which is easier for a human to read.</p>
+      <canvas id="complexityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- RAW TABLE -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">All Runs</div>
+    </div>
+    <div id="tableHost" style="overflow-x:auto;"></div>
+  </div>
+
+  <footer>
+    Explainability Score formula: for each metric, min–max normalize across all loaded rows, invert deletion-AUC / max-sensitivity / entropy (lower raw = higher normalized), then average the five normalized values and scale to 0–100.<br>
+    Loaded columns expected: dataset, model, xai_method, accuracy, precision_macro, recall_macro, f1_macro, auc_macro_ovr, avg_batch_inference_time_sec, model_size_mb, explanation_runtime_sec, faithfulness_deletion_auc, faithfulness_insertion_auc, stability_cosine_sim, max_sensitivity, complexity_entropy_normalized.
+  </footer>
+
+</div>
+
+<script>
+const DEFAULT_CSV = `dataset,model,xai_method,n_xai_samples,accuracy,precision_macro,recall_macro,f1_macro,auc_macro_ovr,avg_batch_inference_time_sec,model_size_mb,explanation_runtime_sec,faithfulness_deletion_auc,faithfulness_insertion_auc,stability_cosine_sim,max_sensitivity,complexity_entropy,complexity_entropy_normalized,part_overlap_ratio,clutter_leakage_ratio
+CIFAR10,resnet18,gradcam,15,0.9518,0.9523082418510798,0.9518000000000001,0.9517373765272072,0.9982590944444445,0.005091490456090568,42.654579162597656,0.1114891529083252,0.42204240297853374,0.8014330491600283,0.9917135747273762,0.08149183057248592,10.393746693929037,0.9603128691653994,,
+CIFAR10,resnet18,shap,15,0.9518,0.9523082418510798,0.9518000000000001,0.9517373765272072,0.9982590944444445,0.005091490456090568,42.654579162597656,10.371557696660359,0.429383852687665,0.6419548045648631,0.7745462036132812,0.8566513856252035,10.32135009765625,0.9536239065485658,,
+CIFAR10,resnet18,lime,15,0.9518,0.9523082418510798,0.9518000000000001,0.9517373765272072,0.9982590944444445,0.005091490456090568,42.654579162597656,1.1825116157531739,0.4438569562471563,0.5981800071049806,0.7387662472327551,0.8170107285181681,10.409282938639324,0.9617483145512778,,
+CIFAR10,efficientnet,gradcam,15,0.9653,0.9654042583165291,0.9653,0.965293743406342,0.9989785722222221,0.008496785697083885,15.336448669433594,0.037084404627482095,0.5166726885466939,0.8741989811608544,0.7670091336468855,0.5661337435245514,10.188221104939778,0.941323675579946,,
+CIFAR10,efficientnet,shap,15,0.9653,0.9654042583165291,0.9653,0.965293743406342,0.9989785722222221,0.008496785697083885,15.336448669433594,32.884166431427005,0.5938654283566359,0.6768805179342761,0.5369955448309581,1.3423354983329774,10.21055113474528,0.9433868213946883,,
+CIFAR10,efficientnet,lime,15,0.9653,0.9654042583165291,0.9653,0.965293743406342,0.9989785722222221,0.008496785697083885,15.336448669433594,2.057379055023193,0.570381250896332,0.7488816231811742,0.7596689607699711,0.7469367265701294,10.373523076375326,0.9584443417931425,,
+FUNNYBIRDS,resnet18,gradcam,15,0.966,0.9691363636363636,0.966,0.9660154932786511,0.9997877551020409,0.004060491919517517,42.73285675048828,0.0576257069905599,0.10541534738664879,0.7347020708227328,0.9100503431426152,0.4517912844816844,10.561642138163249,0.97582528836516,0.0778617023982096,0.07424022786806031
+FUNNYBIRDS,resnet18,shap,15,0.966,0.9691363636363636,0.966,0.9660154932786511,0.9997877551020409,0.004060491919517517,42.73285675048828,7.553332201639811,0.05933450333440729,0.6240095034901575,0.8588716785113018,0.6686545848846436,10.40068759918213,0.9609541625155725,0.0906335037257445,0.2367488110678772
+FUNNYBIRDS,resnet18,lime,15,0.966,0.9691363636363636,0.966,0.9660154932786511,0.9997877551020409,0.004060491919517517,42.73285675048828,0.7588849862416586,0.2760344812696302,0.4116732502486019,0.2612885848929485,1.8240677793820699,8.698288949330648,0.8036638821148504,0.02827496757457847,0.0628569975331248
+FUNNYBIRDS,efficientnet,gradcam,15,0.972,0.9738585858585859,0.9719999999999999,0.9719044581149844,0.9998775510204082,0.009378686547279358,15.531913757324219,0.03564120928446452,0.17982659488613179,0.8827429491888593,0.5441838564972082,0.8472823739051819,10.000864919026693,0.9240132136504503,0.08082703898680094,0.05399659215177641
+FUNNYBIRDS,efficientnet,shap,15,0.972,0.9738585858585859,0.9719999999999999,0.9719044581149844,0.9998775510204082,0.009378686547279358,15.531913757324219,8.574894237518311,0.3140495173250455,0.5501591846140989,0.7490532610151502,0.8643831094106038,10.529335594177246,0.9728403791825901,0.06277052974237683,0.1972279443554335
+FUNNYBIRDS,efficientnet,lime,15,0.972,0.9738585858585859,0.9719999999999999,0.9719044581149844,0.9998775510204082,0.009378686547279358,15.531913757324219,0.7667562325795492,0.5181247574352812,0.4771066290881869,0.5104153078877264,1.3839403907457988,9.525517050425211,0.880094241119113,0.013514407059840796,0.06577655705602602
+FUNNYBIRDS,simplecnn,gradcam,15,0.964,0.968952380952381,0.964,0.9638554139359091,0.9999142857142858,0.0013407915830612183,1.5343704223632812,0.005319976806640625,0.08348548008588194,0.8999155048039501,0.7857710229025946,0.8024426738421122,10.07393569946289,0.9307644663872355,0.09774929427023728,0.06827395030645202
+FUNNYBIRDS,simplecnn,shap,15,0.964,0.968952380952381,0.964,0.9638554139359091,0.9999142857142858,0.0013407915830612183,1.5343704223632812,5.359966214497884,0.10033538555597057,0.8355530736071091,0.936180075009664,0.438966166973114,10.109347279866537,0.9340362602244827,0.10648762747641209,0.1649754584064495
+FUNNYBIRDS,simplecnn,lime,15,0.964,0.968952380952381,0.964,0.9638554139359091,0.9999142857142858,0.0013407915830612183,1.5343704223632812,0.7620213508605957,0.379763963597361,0.46511700674401696,0.15763013350466887,2.309755969047546,8.082580947875977,0.7467765694973137,0.010193026626993208,0.04938836753897408
+`;
+
+let allRows = [];
+let rows = [];         // currently-displayed subset, filtered to one dataset
+let activeDataset = null;
+let charts = {};
+const MODEL_COLORS = ['#5eead4','#4fc3e0','#7fb8f0','#a78bfa'];
+const XAI_COLORS = { gradcam:'#f0a868', shap:'#e0685f', lime:'#f0d868' };
+
+function fmt(v, d=3){ return (typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) : '—'; }
+
+function parseCSV(text){
+  const parsed = Papa.parse(text.trim(), {header:true, dynamicTyping:true, skipEmptyLines:true});
+  return parsed.data;
+}
+
+function renderDatasetTabs(){
+  const datasets = [...new Set(allRows.map(r=>r.dataset))];
+  const host = document.getElementById('datasetTabs');
+  if (datasets.length <= 1){ host.innerHTML = ''; return; }
+  host.innerHTML = datasets.map(d =>
+    `<button class="dtab" data-ds="${d}" style="font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:6px;cursor:pointer;border:1px solid var(--line);background:${d===activeDataset?'var(--model-accent)':'var(--panel-2)'};color:${d===activeDataset?'#0e1117':'var(--text)'};font-weight:${d===activeDataset?'700':'400'};">${d}</button>`
+  ).join('');
+  host.querySelectorAll('.dtab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeDataset = btn.dataset.ds;
+      rows = allRows.filter(r=>r.dataset===activeDataset);
+      renderDatasetTabs();
+      renderAll();
+    });
+  });
+}
+
+function loadData(text, label){
+  allRows = parseCSV(text);
+  const datasets = [...new Set(allRows.map(r=>r.dataset))];
+  // Prefer FunnyBirds by default when both are present — it's the one with
+  // ground-truth part-overlap scores, the more complete story.
+  activeDataset = datasets.includes('FUNNYBIRDS') ? 'FUNNYBIRDS' : datasets[0];
+  rows = allRows.filter(r=>r.dataset===activeDataset);
+
+  document.getElementById('dataStatus').textContent = label;
+  document.getElementById('metaDataset').textContent = datasets.join(', ') || '—';
+  document.getElementById('metaCount').textContent = allRows.length + ' result rows';
+  const lowAcc = rows.every(r => (r.accuracy||0) < 0.35);
+  document.getElementById('lowAccCallout').style.display = lowAcc ? 'block' : 'none';
+  renderDatasetTabs();
+  renderAll();
+}
+
+function destroy(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+function baseOpts(extra={}){
+  return Object.assign({
+    responsive:true,
+    plugins:{
+      legend:{ labels:{ color:'#8b93a5', font:{family:'IBM Plex Mono', size:11} } },
+      tooltip:{ titleFont:{family:'IBM Plex Mono'}, bodyFont:{family:'IBM Plex Mono'} }
+    },
+    scales:{
+      x:{ ticks:{ color:'#8b93a5', font:{family:'IBM Plex Mono', size:10.5} }, grid:{ color:'#1e2532' } },
+      y:{ ticks:{ color:'#8b93a5', font:{family:'IBM Plex Mono', size:10.5} }, grid:{ color:'#1e2532' } }
+    }
+  }, extra);
+}
+
+function uniqueModels(){ return [...new Set(rows.map(r=>r.model))]; }
+function uniqueMethods(){ return [...new Set(rows.map(r=>r.xai_method))]; }
+
+function renderModelPerf(){
+  const models = uniqueModels();
+  const metrics = [
+    {key:'accuracy', label:'Accuracy'},
+    {key:'precision_macro', label:'Precision'},
+    {key:'recall_macro', label:'Recall'},
+    {key:'f1_macro', label:'F1'},
+    {key:'auc_macro_ovr', label:'AUC'}
+  ];
+  const datasets = models.map((m,i)=>{
+    const row = rows.find(r=>r.model===m);
+    return {
+      label:m,
+      data: metrics.map(met=>row ? row[met.key] : 0),
+      backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length],
+      borderRadius:4
+    };
+  });
+  destroy('modelPerf');
+  charts.modelPerf = new Chart(document.getElementById('modelPerfChart'), {
+    type:'bar',
+    data:{ labels: metrics.map(m=>m.label), datasets },
+    options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
+  });
+}
+
+function renderCost(){
+  const models = uniqueModels();
+  const sizes = models.map(m => rows.find(r=>r.model===m).model_size_mb);
+  const times = models.map(m => rows.find(r=>r.model===m).avg_batch_inference_time_sec * 1000);
+  destroy('cost');
+  charts.cost = new Chart(document.getElementById('costChart'), {
+    type:'bar',
+    data:{ labels: models,
+      datasets:[
+        {label:'Model size (MB)', data:sizes, backgroundColor:'#5eead4', borderRadius:4, yAxisID:'y'},
+        {label:'Inference time (ms/batch)', data:times, backgroundColor:'#2c6b62', borderRadius:4, yAxisID:'y1'}
+      ]},
+    options: baseOpts({
+      scales:{
+        x: baseOpts().scales.x,
+        y:{ position:'left', ticks:{color:'#8b93a5', font:{family:'IBM Plex Mono',size:10.5}}, grid:{color:'#1e2532'}, title:{display:true,text:'MB',color:'#5c6579'} },
+        y1:{ position:'right', ticks:{color:'#8b93a5', font:{family:'IBM Plex Mono',size:10.5}}, grid:{drawOnChartArea:false}, title:{display:true,text:'ms',color:'#5c6579'} }
+      }
+    })
+  });
+}
+
+function renderRuntime(){
+  const methods = uniqueMethods();
+  const models = uniqueModels();
+  const datasets = models.map((m,i)=>({
+    label:m,
+    data: methods.map(meth => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.explanation_runtime_sec : 0; }),
+    backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length],
+    borderRadius:4
+  }));
+  destroy('runtime');
+  charts.runtime = new Chart(document.getElementById('runtimeChart'), {
+    type:'bar',
+    data:{ labels: methods, datasets },
+    options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{type:'logarithmic', title:{display:true,text:'seconds (log)',color:'#5c6579'}}) } })
+  });
+}
+
+function renderFaithfulness(){
+  const models = uniqueModels();
+  const methods = uniqueMethods();
+  const labels = [];
+  models.forEach(m => methods.forEach(meth => labels.push(m+' / '+meth)));
+  const del = [], ins = [];
+  models.forEach(m => methods.forEach(meth => {
+    const r = rows.find(r=>r.model===m && r.xai_method===meth);
+    del.push(r ? r.faithfulness_deletion_auc : null);
+    ins.push(r ? r.faithfulness_insertion_auc : null);
+  }));
+  destroy('faith');
+  charts.faith = new Chart(document.getElementById('faithChart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Deletion AUC (↓ better)', data:del, backgroundColor:'#e0685f', borderRadius:4},
+      {label:'Insertion AUC (↑ better)', data:ins, backgroundColor:'#6fce8f', borderRadius:4}
+    ]},
+    options: baseOpts()
+  });
+}
+
+function renderStability(){
+  const models = uniqueModels();
+  const methods = uniqueMethods();
+  const datasets = methods.map(meth => ({
+    label: meth,
+    data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.stability_cosine_sim : 0; }),
+    backgroundColor: XAI_COLORS[meth] || '#f0a868',
+    borderRadius:4
+  }));
+  destroy('stability');
+  charts.stability = new Chart(document.getElementById('stabilityChart'), {
+    type:'bar',
+    data:{ labels: models, datasets },
+    options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
+  });
+}
+
+function renderComplexity(){
+  const models = uniqueModels();
+  const methods = uniqueMethods();
+  const datasets = methods.map(meth => ({
+    label: meth,
+    data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.complexity_entropy_normalized : 0; }),
+    backgroundColor: XAI_COLORS[meth] || '#f0a868',
+    borderRadius:4
+  }));
+  destroy('complexity');
+  charts.complexity = new Chart(document.getElementById('complexityChart'), {
+    type:'bar',
+    data:{ labels: models, datasets },
+    options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
+  });
+}
+
+function norm(vals){
+  const min = Math.min(...vals), max = Math.max(...vals);
+  if(max===min) return vals.map(()=>0.5);
+  return vals.map(v => (v-min)/(max-min));
+}
+
+function renderScoreMatrix(){
+  const models = uniqueModels();
+  const methods = uniqueMethods();
+
+  const del = norm(rows.map(r=>r.faithfulness_deletion_auc)).map(v=>1-v);
+  const ins = norm(rows.map(r=>r.faithfulness_insertion_auc));
+  const stab = norm(rows.map(r=>r.stability_cosine_sim));
+  const sens = norm(rows.map(r=>r.max_sensitivity)).map(v=>1-v);
+  const ent = norm(rows.map(r=>r.complexity_entropy_normalized)).map(v=>1-v);
+
+  const scoreByIdx = rows.map((r,i)=> ((del[i]+ins[i]+stab[i]+sens[i]+ent[i])/5)*100 );
+
+  let html = '<table class="matrix"><tr><th></th>';
+  methods.forEach(meth => html += `<th class="colhead">${meth}</th>`);
+  html += '</tr>';
+  models.forEach(m => {
+    html += `<tr><td class="rowhead">${m}</td>`;
+    methods.forEach(meth => {
+      const idx = rows.findIndex(r=>r.model===m && r.xai_method===meth);
+      if(idx === -1){ html += '<td class="cell">—</td>'; return; }
+      const s = scoreByIdx[idx];
+      const hue = 5 + (s/100)*115; // red -> green
+      const bg = `hsl(${hue}, 45%, 20%)`;
+      const fg = `hsl(${hue}, 65%, 68%)`;
+      html += `<td class="cell" style="background:${bg}"><span class="score" style="color:${fg}">${s.toFixed(0)}</span><span class="lbl">score /100</span></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('scoreMatrixHost').innerHTML = html;
+}
+
+function renderTable(){
+  const cols = ['dataset','model','xai_method','accuracy','f1_macro','auc_macro_ovr','faithfulness_deletion_auc','faithfulness_insertion_auc','stability_cosine_sim','complexity_entropy_normalized','explanation_runtime_sec'];
+  const labels = ['Dataset','Model','XAI Method','Accuracy','F1','AUC','Del. AUC','Ins. AUC','Stability','Entropy (norm)','Runtime (s)'];
+  let html = '<table><tr>' + labels.map(l=>`<th>${l}</th>`).join('') + '</tr>';
+  rows.forEach(r=>{
+    html += '<tr>';
+    cols.forEach((c,i)=>{
+      const v = r[c];
+      const isNum = typeof v === 'number';
+      html += `<td class="${i<3?'name':''}">${isNum ? fmt(v, c==='explanation_runtime_sec'?2:3) : v}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('tableHost').innerHTML = html;
+}
+
+function renderGroundTruth(){
+  const panel = document.getElementById('groundTruthPanel');
+  const hasGroundTruth = rows.some(r => r.part_overlap_ratio !== null && r.part_overlap_ratio !== undefined && r.part_overlap_ratio !== '');
+  panel.style.display = hasGroundTruth ? 'block' : 'none';
+  if (!hasGroundTruth){ destroy('groundTruth'); return; }
+
+  const models = uniqueModels();
+  const methods = uniqueMethods();
+  const labels = [];
+  models.forEach(m => methods.forEach(meth => labels.push(m+' / '+meth)));
+  const overlap = [], leakage = [];
+  models.forEach(m => methods.forEach(meth => {
+    const r = rows.find(r=>r.model===m && r.xai_method===meth);
+    overlap.push(r ? r.part_overlap_ratio : null);
+    leakage.push(r ? r.clutter_leakage_ratio : null);
+  }));
+  destroy('groundTruth');
+  charts.groundTruth = new Chart(document.getElementById('groundTruthChart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Part overlap (↑ better — hits real bird part)', data:overlap, backgroundColor:'#6fce8f', borderRadius:4},
+      {label:'Clutter leakage (↓ better — wasted on distractors)', data:leakage, backgroundColor:'#e0685f', borderRadius:4}
+    ]},
+    options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
+  });
+}
+
+function renderAll(){
+  renderModelPerf();
+  renderCost();
+  renderRuntime();
+  renderGroundTruth();
+  renderFaithfulness();
+  renderStability();
+  renderComplexity();
+  renderScoreMatrix();
+  renderTable();
+}
+
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadData(ev.target.result, `Loaded: ${file.name}`);
+  reader.readAsText(file);
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  loadData(DEFAULT_CSV, 'Showing real benchmark runs (CIFAR-10 + FunnyBirds, all trained checkpoints)');
+});
+
+loadData(DEFAULT_CSV, 'Showing real benchmark runs (CIFAR-10 + FunnyBirds, all trained checkpoints)');
+</script>
+</body>
+</html>
