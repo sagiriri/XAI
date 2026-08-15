@@ -1,0 +1,37 @@
+# XAIBench — requirements
+#
+# IMPORTANT: install torch/torchvision/torchaudio SEPARATELY first, with the
+# CUDA-enabled wheel index — a plain `pip install -r requirements.txt` will
+# otherwise silently install the CPU-only build and everything will run on
+# CPU instead of your GPU:
+#
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# Then install everything else normally:
+#
+#   pip install -r requirements.txt
+#
+# Tested on Python 3.11 (NOT 3.14 — CUDA wheels for torch weren't available
+# for 3.14 as of this project's development; use 3.11 if you hit the same
+# "no matching distribution" error on the CUDA index).
+#
+# For a byte-exact match of this project's original environment, run
+# `pip freeze > requirements-exact.txt` inside the activated xaibench-env
+# instead of relying on this file's unpinned versions.
+
+timm
+shap
+lime
+captum
+grad-cam
+scikit-learn
+quantus
+numpy
+pandas
+Pillow
+opencv-python
+matplotlib
+seaborn
+plotly
+tqdm
+scipy

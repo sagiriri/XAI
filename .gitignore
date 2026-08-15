@@ -1,0 +1,28 @@
+# Datasets — large, and CIFAR-10/FunnyBirds have their own distribution terms.
+# Anyone cloning this repo should re-download via dataset_module.py instead.
+data/
+
+# Trained model checkpoints — regenerate with train_full.py instead of
+# committing multi-hundred-MB binary files to git history.
+models/
+
+# Virtual environment
+xaibench-env/
+venv/
+*.egg-info/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+
+# One-off inspection scripts used during development (kept locally, not
+# part of the reproducible pipeline) — remove this line if you'd rather
+# keep them in the repo as documentation of the ground-truth verification process.
+# inspect_part_colors.py
+# scan_all_part_colors.py
