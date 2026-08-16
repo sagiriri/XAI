@@ -62,6 +62,8 @@ python benchmark_module.py --dataset funnybirds --models resnet18 efficientnet s
 
 FunnyBirds itself isn't included in this repo (see `.gitignore`) — download it via the [official framework](https://github.com/visinf/funnybirds-framework) into `data/FunnyBirds/`.
 
+**Live demo:** [sagiriri.github.io/XAI](https://sagiriri.github.io/XAI/) — `index.html` and `visual_analytics.html` are identical (the former exists purely so GitHub Pages serves the dashboard as the homepage instead of this README).
+
 ## Results
 
 Full results, charts, and the composite Explainability Score matrix are in `visual_analytics.html` — open it directly, no server needed. Key finding: **Grad-CAM consistently shows the highest ground-truth part-overlap and lowest clutter-leakage** of the three methods on FunnyBirds, meaning it isn't just scoring well on self-referential faithfulness metrics — it's actually pointing at the correct anatomical features more reliably than SHAP or LIME.
