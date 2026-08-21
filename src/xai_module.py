@@ -198,14 +198,38 @@ def explain_lime(model, image_tensor, target_class: int, device: str = "cpu",
     model.eval()
     device = _model_device(model)  # match the model's actual device, don't move it
 
-    # Undo normalization to get a plain [0, 1] RGB image for LIME's
-    # perturbation-based sampling, which expects natural image statistics.
+    # LIME's perturbation/segmentation logic expects a plain [0, 1] RGB
+    # image, but `image_tensor` arrives here already normalized (e.g.
+    # transforms.Normalize(CIFAR_MEAN, CIFAR_STD) or (0.5,0.5,0.5) for
+    # FunnyBirds — both datasets normalize in dataset_module.py). Rescaling
+    # to [0, 1] for LIME's own use is fine and necessary. The bug was that
+    # predict_fn used to feed those rescaled [0, 1] perturbed images
+    # straight back into the model with no re-normalization: the model was
+    # trained on normalized inputs (roughly [-2, 2] for CIFAR, [-1, 1] for
+    # FunnyBirds), so every prediction LIME's surrogate model was fit on
+    # came from feeding the CNN out-of-distribution input — silently
+    # degrading LIME's explanations relative to Grad-CAM/SHAP, which never
+    # touch this rescale and stay in the model's expected input space.
+    #
+    # Fix: record the exact affine map used to go from the original
+    # normalized tensor to [0, 1] (orig_min, orig_max), then invert that
+    # same map inside predict_fn before calling the model — this works
+    # regardless of which dataset's normalization stats were used upstream,
+    # since it's undoing this function's own rescale rather than assuming
+    # a specific mean/std.
+    orig_min = image_tensor.min().item()
+    orig_max = image_tensor.max().item()
+    orig_range = (orig_max - orig_min) + 1e-8
+
     img = image_tensor[0].detach().cpu().numpy().transpose(1, 2, 0)
-    img = (img - img.min()) / (img.max() - img.min() + 1e-8)
+    img = (img - orig_min) / orig_range
 
     def predict_fn(images_np):
         """LIME calls this repeatedly with batches of perturbed images."""
         batch = torch.tensor(images_np.transpose(0, 3, 1, 2), dtype=torch.float32, device=device)
+        # Undo the [0, 1] rescale above to put perturbed samples back into
+        # the same normalized space the model was trained on.
+        batch = batch * orig_range + orig_min
         with torch.no_grad():
             outputs = model(batch)
             probs = F.softmax(outputs, dim=1)
