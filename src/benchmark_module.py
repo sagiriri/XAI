@@ -297,7 +297,6 @@ def compute_explanation_metrics(model, image_tensor, target_class, explain_fn, d
         "explanation_runtime_sec": runtime_sec,
         "faithfulness_deletion_auc": deletion_auc,   # lower is better
         "faithfulness_insertion_auc": insertion_auc, # higher is better
-        "paper_deletion_auc": paper_deletion_auc,
         **stability,
         **complexity,
     }
@@ -333,7 +332,7 @@ XAI_METHODS = {
 
 
 class BenchmarkEngine:
-    def __init__(self, results_dir="../results"):
+    def __init__(self, results_dir="results"):
         self.results_dir = results_dir
         os.makedirs(self.results_dir, exist_ok=True)
         self.rows = []
