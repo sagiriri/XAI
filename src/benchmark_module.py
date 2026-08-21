@@ -428,9 +428,11 @@ class BenchmarkEngine:
                       f"stability={agg.get('stability_cosine_sim'):.4f}, "
                       f"runtime={agg.get('explanation_runtime_sec'):.3f}s")
 
-            if output_filename is not None:
-                self.save(output_filename)
-                print(f"  [checkpoint] saved progress through '{model_name}' to {output_filename}")
+                # Save after EVERY XAI method so an overnight run can
+                # resume safely even if a later method crashes/interruption occurs.
+                if output_filename is not None:
+                    self.save(output_filename)
+                    print(f"  [checkpoint] saved after {model_name} + {method_name}")
 
         return self.rows
 
