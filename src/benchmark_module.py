@@ -37,7 +37,6 @@ import os
 import time
 import json
 import functools
-
 import numpy as np
 import pandas as pd
 import torch
@@ -46,6 +45,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_sco
 
 from model_module import evaluate_model, get_model_size_mb
 from xai_module import explain_gradcam, explain_shap, explain_lime
+from fidelity_module import paper_style_deletion_auc
 
 
 def _trapz(y, x):
@@ -282,6 +282,13 @@ def compute_explanation_metrics(model, image_tensor, target_class, explain_fn, d
     deletion_auc, insertion_auc = faithfulness_deletion_insertion_auc(
         model, image_tensor, target_class, explanation, device
     )
+    paper_deletion_auc = paper_style_deletion_auc(
+    model=model,
+    image_tensor=image_tensor,
+    target_class=target_class,
+    explanation=explanation,
+    device=device,
+)
     stability = stability_score(model, image_tensor, target_class, explain_fn, device,
                                   original_explanation=explanation)
     complexity = sparsity_complexity(explanation)
@@ -290,6 +297,7 @@ def compute_explanation_metrics(model, image_tensor, target_class, explain_fn, d
         "explanation_runtime_sec": runtime_sec,
         "faithfulness_deletion_auc": deletion_auc,   # lower is better
         "faithfulness_insertion_auc": insertion_auc, # higher is better
+        "paper_deletion_auc": paper_deletion_auc,
         **stability,
         **complexity,
     }
