@@ -297,6 +297,7 @@ def compute_explanation_metrics(model, image_tensor, target_class, explain_fn, d
         "explanation_runtime_sec": runtime_sec,
         "faithfulness_deletion_auc": deletion_auc,   # lower is better
         "faithfulness_insertion_auc": insertion_auc, # higher is better
+         "paper_deletion_auc": paper_deletion_auc,
         **stability,
         **complexity,
     }
@@ -459,7 +460,7 @@ def run_smoketest():
         "resnet18": get_model("resnet18", num_classes=num_classes, pretrained=True),
     }
 
-    engine = BenchmarkEngine(results_dir="../results")
+    engine = BenchmarkEngine(results_dir="results")
     engine.run(
         models=models,
         dataloader=test_loader,
@@ -526,7 +527,7 @@ def run_from_checkpoints(dataset_name, model_names, num_xai_samples, checkpoint_
         print("No checkpoints found — nothing to benchmark. Run train_full.py first.")
         return
 
-    engine = BenchmarkEngine(results_dir="../results")
+    engine = BenchmarkEngine(results_dir="results")
     xai_methods = ({k: XAI_METHODS[k] for k in xai_method_names}
                     if xai_method_names else None)
     engine.run(
