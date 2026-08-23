@@ -8,7 +8,9 @@
 
 Explainable AI (XAI) methods like Grad-CAM, SHAP, and LIME are widely used to interpret deep learning models, but they are rarely evaluated against each other systematically. Most projects that use XAI pick one method and demonstrate it qualitatively — this project instead builds a **benchmark platform** that trains multiple models, applies multiple XAI methods to each, and scores every combination on a consistent set of quantitative metrics.
 
-This follows the recent trend in the XAI literature of building standardized benchmark suites rather than one-off demonstrations — e.g. Saliency-Bench (2023), ExplainTS (2026), BEExAI (2025), and XAI-Units (2025) all take this approach. XAIBench applies the same methodology to a smaller, self-contained image-classification setting.
+This project's primary point of comparison is Skliarov et al.'s 2025 *Scientific Reports* study, *"A comparative evaluation of explainability techniques for image data"* [22], which benchmarks six saliency-based XAI methods (LIME, SHAP, Grad-CAM, Grad-CAM++, Integrated Gradients, SmoothGrad) across three datasets (CIFAR-10, SVHN, Imagenette) and three architectures (ResNet50, VGG16, ViT-B/16), using five function-grounded metrics: fidelity, stability, identity, separability, and computational time. XAIBench follows the same function-grounded philosophy but narrows the method and dataset scope in exchange for adding a dimension that study does not have: **ground-truth correctness**, evaluated on the FunnyBirds dataset, where the "right answer" for what an explanation should highlight is actually known rather than inferred from the model's own behavior. Section 6.5 gives a direct, scope-honest comparison between the two studies' findings.
+
+This also follows the recent broader trend in the XAI literature of building standardized benchmark suites rather than one-off demonstrations — e.g. Saliency-Bench (2023), ExplainTS (2026), BEExAI (2025), and XAI-Units (2025) all take this approach. XAIBench applies a version of this methodology to a smaller, self-contained image-classification setting, with Skliarov et al. [22] as the nearest direct predecessor in scope and method.
 
 ## 2. Datasets
 
@@ -17,7 +19,7 @@ This follows the recent trend in the XAI literature of building standardized ben
 | CIFAR-10 | Model training/evaluation, standard baseline | 10 | 50,000 train / 10,000 test |
 | FunnyBirds | Ground-truth explanation evaluation | 50 (synthetic birds) | 50,000 train / 500 test; each image ships with a matching part-map that identifies exactly where the beak, eye, foot, and wing are — real ground truth for checking whether an explanation is pointing at the correct region, not just a plausible-looking one |
 
-FunnyBirds is a synthetic, part-based dataset purpose-built for evaluating visual explanations (Hesse et al., 2023) — this is what differentiates XAIBench from a plain model-accuracy comparison: it lets us measure whether an explanation is *correct*, not just whether it looks reasonable.
+FunnyBirds is a synthetic, part-based dataset purpose-built for evaluating visual explanations (Hesse et al., 2023) — this is what differentiates XAIBench from a plain model-accuracy comparison, and from the baseline study in §1: it lets us measure whether an explanation is *correct*, not just whether it looks internally consistent.
 
 ## 3. Architecture
 
@@ -34,7 +36,7 @@ Dataset Module → Model Module → XAI Module → Benchmark Engine → Visual A
 - **Model Module** — a unified `get_model()`/`train_model()`/`evaluate_model()` interface across three architectures: a custom SimpleCNN baseline, ResNet18, and EfficientNet-B0 (both ImageNet-pretrained).
 - **XAI Module** — Grad-CAM, SHAP (GradientExplainer), and LIME, all normalized to the same `(H, W)` output format so they're directly comparable.
 - **Benchmark Engine** — computes model performance (accuracy/precision/recall/F1/AUC), explanation faithfulness (deletion/insertion AUC), stability (robustness to input noise), complexity (entropy-based conciseness), and runtime, for every (model × XAI method) pair.
-- **FunnyBirds Ground-Truth Module** — the project's key differentiator. Verifies each explanation's most important pixels against the dataset's real part locations, producing a *part overlap ratio* (does the explanation hit a real bird part?) and *clutter leakage ratio* (does it waste attention on background distractor objects?).
+- **FunnyBirds Ground-Truth Module** — the project's key differentiator relative to both the general XAI-benchmarking literature and the primary baseline study. Verifies each explanation's most important pixels against the dataset's real part locations, producing a *part overlap ratio* (does the explanation hit a real bird part?) and *clutter leakage ratio* (does it waste attention on background distractor objects?).
 - **Visual Analytics** — an interactive dashboard presenting all of the above, with a composite Explainability Score and per-dataset filtering.
 
 ## 4. Methodology
@@ -91,7 +93,7 @@ SimpleCNN's large accuracy gap between datasets (63.9% vs. 96.4%) is expected, n
 | EfficientNet | FunnyBirds | **62.9** | 45.5 | 27.5 |
 | SimpleCNN | FunnyBirds | **87.1** | 80.6 | 25.3 |
 
-Grad-CAM has the highest composite Explainability Score on **every single one of the six model × dataset combinations tested** — not a marginal or inconsistent result. LIME is consistently the lowest scorer across all six.
+Grad-CAM has the highest composite Explainability Score on **every single one of the six model × dataset combinations tested** — not a marginal or inconsistent result. LIME is consistently the lowest scorer across all six. This ranking holds specifically among the three methods XAIBench tests; §6.5 addresses how it relates to the broader six-method ranking reported by the primary baseline.
 
 ### 6.3 Ground-truth part overlap (FunnyBirds only)
 
@@ -113,28 +115,52 @@ This is the more nuanced, and arguably more interesting, finding of the two: **S
 
 Faithfulness-metric performance and ground-truth correctness aligned closely for Grad-CAM: it is not only the fastest method by 1–2 orders of magnitude, it also produces the best overall trade-off between correctly localizing real bird parts (competitive-to-best part-overlap) and avoiding background clutter (consistently lowest clutter-leakage of the three methods). SHAP can be competitive on raw localization but pays for it with substantially more attention wasted on irrelevant distractor objects. LIME, despite being commonly used as a fast approximate explainer, was the weakest performer on the one metric that checks against actual ground truth — a result that would not have been visible from faithfulness metrics alone, and is the central empirical justification for building the ground-truth evaluation layer in the first place.
 
+### 6.5 Comparison to Prior Work
+
+This section places XAIBench's findings directly against the primary baseline, Skliarov et al. [22], rather than treating it as background citation.
+
+**Scope comparison**
+
+| | Skliarov et al. [22] (primary baseline) | XAIBench (this project) |
+|---|---|---|
+| XAI methods | 6: LIME, SHAP, Grad-CAM, Grad-CAM++, Integrated Gradients, SmoothGrad | 3: Grad-CAM, SHAP, LIME |
+| Datasets | 3: CIFAR-10, SVHN, Imagenette | 2: CIFAR-10, FunnyBirds |
+| Models | 3: ResNet50, VGG16, ViT-B/16 | 3: SimpleCNN, ResNet18, EfficientNet-B0 |
+| Core metrics | Fidelity (deletion AUC), stability, identity, separability, runtime | Faithfulness (deletion + insertion AUC), stability, complexity, runtime, composite Explainability Score |
+| Ground-truth evaluation | None (all metrics are function-grounded, derived from the model's own behavior) | **Yes** — FunnyBirds part-overlap / clutter-leakage against real annotated part locations |
+
+**Where the two studies agree.** The baseline reports that Grad-CAM and Grad-CAM++ deliver the highest computational efficiency of the methods tested, though at the cost of lower fidelity relative to gradient-based alternatives. XAIBench's runtime results are consistent with the efficiency half of that finding: Grad-CAM was 1–2 orders of magnitude faster than SHAP across every model tested here. The baseline also finds identity and separability to be strong for most methods except LIME and SmoothGrad, and XAIBench's own ground-truth results independently support the general conclusion that LIME is the weakest of the commonly-used approximate explainers — here, on the specific dimension of pointing at the *correct* anatomical region rather than just a stable or separable one.
+
+**Where the scope must be kept honest.** The baseline's headline result is that gradient-based methods — particularly Integrated Gradients and SmoothGrad — achieved the strongest fidelity and stability scores overall, with statistically significant improvements over LIME, Grad-CAM, and Grad-CAM++ on CIFAR-10 and Imagenette; SHAP also performed strongly, particularly on SVHN. XAIBench did not implement Integrated Gradients or SmoothGrad, so **the claim "Grad-CAM performs best" in §6.2 and §6.4 above is scoped to the three methods XAIBench tested, not to XAI methods in general.** Read against the baseline, XAIBench's result is better stated as: *among Grad-CAM, SHAP, and LIME, Grad-CAM gives the best trade-off of speed, faithfulness, and (uniquely tested here) ground-truth correctness* — which is compatible with, rather than contradicting, the baseline's finding that gradient-based methods outside this project's scope may fidelity-outperform Grad-CAM on non-synthetic datasets.
+
+**What XAIBench adds beyond the baseline.** The baseline's five metrics (fidelity, stability, identity, separability, time) are explicitly function-grounded — each is derived from perturbing inputs and observing the model's own output, with no independent notion of whether an explanation is actually *correct*. XAIBench's FunnyBirds-based part-overlap and clutter-leakage metrics add exactly the dimension that function-grounded evaluation cannot provide: a real, annotated answer for where an explanation *should* point. This is also acknowledged as an open problem in the FunnyBirds paper itself (Hesse et al., 2023), which XAIBench's ground-truth module builds on directly, and is the reason XAIBench extends rather than duplicates the baseline's contribution.
+
 ## 7. Limitations
 
+- **Narrower method and dataset scope than the primary baseline.** XAIBench tests 3 of the 6 methods and 2 of the 3 datasets used by Skliarov et al. [22]; in particular, Integrated Gradients and SmoothGrad — the baseline's top fidelity/stability performers — were not implemented here. Conclusions about "the best XAI method" in this report should be read as scoped to Grad-CAM/SHAP/LIME, not as a claim against the full method space.
 - **Tail excluded from ground truth.** Confirmed absent as a distinct color across 45 sampled images; likely camera occlusion rather than uncolored geometry. Ground-truth evaluation covers beak, eye, foot, and wing only.
 - **FunnyBirds test set is small** (500 images), so per-epoch test accuracy showed more run-to-run variance than CIFAR-10's 10,000-image test set.
 - **SHAP explanations use a 64×64 downsampled resolution** internally for stability reasons (§5); this is a documented approximation, not a methodological choice motivated by explanation quality.
 - **Explainability Score composite weighting is uniform** (five metrics averaged equally) — a domain expert might reasonably weight faithfulness above complexity, for example. The formula is fully documented so this can be adjusted.
+- **Ground-truth metric is pixel-color-based, not intervention-based.** FunnyBirds' own official evaluation protocol measures part importance via actual 3D scene re-rendering (removing/replacing parts and observing prediction change), which is more rigorous than the static pixel-overlap approach used here (see §8).
 
 ## 8. Future Work
 
-- **Intervention-based ground truth.** FunnyBirds ships an official evaluation mechanism (`test_interventions/`) that measures part importance via actual 3D scene re-rendering (removing/replacing parts and observing prediction change) rather than static pixel-color matching. This is more rigorous than the pixel-overlap metric used here and would be a natural extension.
+- **Close the method gap with the primary baseline.** Adding Integrated Gradients and SmoothGrad (both flagged in §7) to XAIBench's unified XAI interface — Integrated Gradients is already available via Captum in this project's environment — would let the ground-truth layer be applied to the baseline's full six-method set rather than a subset, producing a direct like-for-like extension of Skliarov et al. [22] rather than a partial one.
+- **Intervention-based ground truth.** FunnyBirds ships an official evaluation mechanism (`test_interventions/`) that measures part importance via actual 3D scene re-rendering rather than static pixel-color matching. This is more rigorous than the pixel-overlap metric used here and would be a natural extension.
 - **Larger XAI sample counts** for even tighter confidence intervals on the faithfulness/stability metrics.
-- **Additional XAI methods** (e.g. Integrated Gradients, already available via Captum in the environment) could be added to the same unified interface with minimal changes.
+- **Additional datasets** (SVHN, Imagenette) to match the baseline's dataset coverage and test whether the ground-truth-vs-fidelity relationship observed here on FunnyBirds generalizes to non-synthetic data.
 
 ## 9. Conclusion
 
-XAIBench trained three models to strong real-world accuracy (95–97% for the pretrained architectures) on two datasets and benchmarked three XAI methods against each using both internal consistency metrics and — via a purpose-built ground-truth module — actual correctness against known bird-part locations. The central result held consistently across all six model × dataset combinations: **Grad-CAM offered the best overall trade-off of speed, faithfulness, and ground-truth correctness**, while LIME was reliably the weakest at correctly localizing real explanatory features despite its common use as a fast, general-purpose explainer. This finding — that a method's internal faithfulness score doesn't necessarily predict its real-world correctness — is only visible because of the ground-truth layer this project added on top of the standard benchmark metrics, and is the platform's main contribution beyond reproducing existing XAI evaluation methodology.
+XAIBench trained three models to strong real-world accuracy (95–97% for the pretrained architectures) on two datasets and benchmarked three XAI methods against each using both internal consistency metrics and — via a purpose-built ground-truth module — actual correctness against known bird-part locations. Within this three-method scope, the central result held consistently across all six model × dataset combinations: **Grad-CAM offered the best overall trade-off of speed, faithfulness, and ground-truth correctness**, while LIME was reliably the weakest at correctly localizing real explanatory features despite its common use as a fast, general-purpose explainer — a result consistent with, though narrower in method coverage than, the primary baseline's own function-grounded findings. XAIBench's specific contribution beyond that baseline, and beyond the broader function-grounded XAI-evaluation literature it is part of, is the ground-truth layer itself: a way of checking not just whether an explanation is internally consistent, stable, and separable, but whether it is actually *right*. That question is only answerable because FunnyBirds provides a dataset where the correct answer is knowable in the first place, and it is the central empirical justification for this project's design.
 
 ---
 
 ## Appendix: Cited work for dataset/methodology justification
 
 - Hesse et al., "FunnyBirds: A Synthetic Vision Dataset for a Part-Based Analysis of Explainable AI Methods," ICCV 2023. (arXiv:2308.06248)
+- Skliarov, M., El Shawi, R., Dhaoui, C., & Ahmed, N., "A comparative evaluation of explainability techniques for image data," *Scientific Reports* 15, 41898 (2025). — **Primary comparison baseline for this project (see §1, §6.5).**
 - Saliency-Bench (2023, arXiv:2310.08537)
 - ExplainTS (2026, Frontiers in AI)
 - BEExAI (2025, Springer)
