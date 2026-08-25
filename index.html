@@ -129,6 +129,114 @@
     margin-top:36px; padding-top:18px; border-top:1px solid var(--line);
     font-family:var(--mono); font-size:11px; color:var(--muted-2); line-height:1.7;
   }
+
+  /* ---------- Life pass: motion, depth, interactivity ---------- */
+
+  @keyframes scanSweep{
+    0%{ background-position: -40% 0; }
+    100%{ background-position: 140% 0; }
+  }
+  header{ position:relative; overflow:hidden; }
+  header::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--model-accent), var(--xai-accent), transparent);
+    background-size:60% 100%;
+    animation: scanSweep 5s linear infinite;
+    opacity:.7;
+  }
+
+  .hero-stats{
+    display:flex; gap:0; margin-bottom:26px; border:1px solid var(--line); border-radius:10px;
+    overflow:hidden; background:var(--panel);
+  }
+  .hero-stat{
+    flex:1; padding:16px 20px; border-right:1px solid var(--line); position:relative;
+  }
+  .hero-stat:last-child{ border-right:none; }
+  .hero-stat .hs-label{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted-2); margin-bottom:6px;
+  }
+  .hero-stat .hs-value{
+    font-family:var(--mono); font-size:26px; font-weight:700; color:var(--text);
+    font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  }
+  .hero-stat .hs-value.accent-model{ color:var(--model-accent); }
+  .hero-stat .hs-value.accent-xai{ color:var(--xai-accent); }
+  .hero-stat .hs-sub{ font-size:11px; color:var(--muted); margin-top:3px; }
+
+  .panel{
+    opacity:0; transform:translateY(14px);
+    transition:opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1),
+               border-color .2s ease, box-shadow .2s ease;
+  }
+  .panel.in-view{ opacity:1; transform:translateY(0); }
+  .panel:hover{ border-color:var(--muted-2); box-shadow:0 8px 28px -14px rgba(0,0,0,.55); }
+
+  .toolbar label, #resetBtn, .dtab{
+    transition:transform .12s ease, border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .toolbar label:active, #resetBtn:active{ transform:scale(.97); }
+  .dtab:hover{ filter:brightness(1.12); }
+
+  /* Score matrix — now interactive */
+  .cell{
+    cursor:pointer; transition:transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s ease, filter .15s ease;
+  }
+  .cell:hover, .cell:focus-visible{
+    transform:translateY(-3px) scale(1.035);
+    box-shadow:0 10px 24px -10px rgba(0,0,0,.6);
+    filter:brightness(1.08);
+    outline:none;
+  }
+  .cell .score{ transition:none; font-variant-numeric:tabular-nums; }
+  .cell .hint{
+    font-size:8.5px; color:var(--muted-2); text-transform:uppercase; letter-spacing:.05em;
+    margin-top:2px; opacity:.7;
+  }
+
+  .breakdown-overlay{
+    position:fixed; inset:0; background:rgba(6,8,12,.6); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .breakdown-overlay.open{ display:flex; }
+  .breakdown-card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    padding:24px 26px; max-width:420px; width:100%;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.7);
+    animation: cardIn .22s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes cardIn{ from{opacity:0; transform:translateY(8px) scale(.97);} to{opacity:1; transform:none;} }
+  .breakdown-card h3{ margin:0 0 2px; font-size:16px; text-transform:capitalize; }
+  .breakdown-card .bd-sub{ font-family:var(--mono); font-size:11px; color:var(--muted-2); margin-bottom:16px; }
+  .bd-row{ margin-bottom:12px; }
+  .bd-row-head{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+  .bd-row-head b{ font-family:var(--mono); color:var(--text); }
+  .bd-track{ height:6px; border-radius:3px; background:#262e3d; overflow:hidden; }
+  .bd-fill{ height:100%; border-radius:3px; background:var(--model-accent); transition:width .5s cubic-bezier(.16,1,.3,1); }
+  .bd-close{
+    margin-top:8px; width:100%; padding:9px; border-radius:6px; border:1px solid var(--line);
+    background:var(--panel); color:var(--muted); font-family:var(--mono); font-size:12px; cursor:pointer;
+  }
+  .bd-close:hover{ color:var(--text); border-color:var(--muted-2); }
+
+  th.sortable{ cursor:pointer; user-select:none; transition:color .15s ease; }
+  th.sortable:hover{ color:var(--text); }
+  th.sortable .arrow{ opacity:0; margin-left:3px; transition:opacity .15s ease; }
+  th.sortable.active .arrow{ opacity:1; color:var(--model-accent); }
+
+  a, label, button, .dtab, .cell, th.sortable{ }
+  :focus-visible{ outline:2px solid var(--model-accent); outline-offset:2px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+    header::after{ display:none; }
+  }
+  @media (max-width:640px){
+    .hero-stats{ flex-direction:column; }
+    .hero-stat{ border-right:none; border-bottom:1px solid var(--line); }
+    .hero-stat:last-child{ border-bottom:none; }
+  }
 </style>
 </head>
 <body>
@@ -145,6 +253,24 @@
       <div id="metaCount">— result rows</div>
     </div>
   </header>
+
+  <div class="hero-stats" id="heroStats">
+    <div class="hero-stat">
+      <div class="hs-label">Combinations benchmarked</div>
+      <div class="hs-value accent-model" id="heroCombos">0</div>
+      <div class="hs-sub" id="heroDatasetsSub">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-label">Top method by score</div>
+      <div class="hs-value accent-xai" id="heroTopMethod">—</div>
+      <div class="hs-sub" id="heroTopMethodSub">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hs-label">Weakest on ground truth</div>
+      <div class="hs-value" id="heroWeakest">—</div>
+      <div class="hs-sub" id="heroWeakestSub">click any score cell for its breakdown →</div>
+    </div>
+  </div>
 
   <div class="toolbar">
     <label for="fileInput">↑ Load benchmark_results.csv</label>
@@ -258,6 +384,10 @@
 
 </div>
 
+<div class="breakdown-overlay" id="breakdownOverlay">
+  <div class="breakdown-card" id="breakdownCard"></div>
+</div>
+
 <script>
 const DEFAULT_CSV = `dataset,model,xai_method,n_xai_samples,accuracy,precision_macro,recall_macro,f1_macro,auc_macro_ovr,avg_batch_inference_time_sec,model_size_mb,explanation_runtime_sec,faithfulness_deletion_auc,faithfulness_insertion_auc,stability_cosine_sim,max_sensitivity,complexity_entropy,complexity_entropy_normalized,part_overlap_ratio,clutter_leakage_ratio
 CIFAR10,resnet18,gradcam,60,0.9518,0.9523082418510798,0.9518000000000001,0.9517373765272072,0.9982590944444445,0.004988812790891995,42.654579162597656,0.06283380985260009,0.36881018509921054,0.7700717261338439,0.9975377824571399,0.06041563081865509,10.33731648127238,0.9550990939003563,,
@@ -284,10 +414,44 @@ let allRows = [];
 let rows = [];         // currently-displayed subset, filtered to one dataset
 let activeDataset = null;
 let charts = {};
+let scoreComponents = [];   // per-row breakdown, aligned with `rows` index, filled by renderScoreMatrix
+let sortCol = null, sortDir = 1;
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MODEL_COLORS = ['#5eead4','#4fc3e0','#7fb8f0','#a78bfa'];
 const XAI_COLORS = { gradcam:'#f0a868', shap:'#e0685f', lime:'#f0d868' };
 
 function fmt(v, d=3){ return (typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) : '—'; }
+
+function countUp(el, target, opts={}){
+  const decimals = opts.decimals ?? 0;
+  const suffix = opts.suffix ?? '';
+  if (REDUCED_MOTION || !isFinite(target)){ el.textContent = target.toFixed(decimals) + suffix; return; }
+  const start = 0, duration = 700, t0 = performance.now();
+  function tick(t){
+    const p = Math.min(1, (t - t0) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = (start + (target - start) * eased).toFixed(decimals) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function revealPanels(){
+  const panels = document.querySelectorAll('.panel');
+  if (REDUCED_MOTION || !('IntersectionObserver' in window)){
+    panels.forEach(p => p.classList.add('in-view'));
+    return;
+  }
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting){
+        setTimeout(()=> entry.target.classList.add('in-view'), i * 60);
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  panels.forEach(p => io.observe(p));
+}
 
 function parseCSV(text){
   const parsed = Papa.parse(text.trim(), {header:true, dynamicTyping:true, skipEmptyLines:true});
@@ -486,6 +650,17 @@ function renderScoreMatrix(){
 
   const scoreByIdx = rows.map((r,i)=> ((del[i]+ins[i]+stab[i]+sens[i]+ent[i])/5)*100 );
 
+  scoreComponents = rows.map((r,i)=>({
+    model:r.model, method:r.xai_method, score:scoreByIdx[i],
+    parts:[
+      {label:'Insertion AUC (faithfulness)', norm:ins[i], raw:r.faithfulness_insertion_auc},
+      {label:'1 − Deletion AUC (faithfulness)', norm:del[i], raw:r.faithfulness_deletion_auc},
+      {label:'Stability (cosine sim)', norm:stab[i], raw:r.stability_cosine_sim},
+      {label:'1 − Max sensitivity', norm:sens[i], raw:r.max_sensitivity},
+      {label:'1 − Entropy (complexity)', norm:ent[i], raw:r.complexity_entropy_normalized},
+    ]
+  }));
+
   let html = '<table class="matrix"><tr><th></th>';
   methods.forEach(meth => html += `<th class="colhead">${meth}</th>`);
   html += '</tr>';
@@ -498,19 +673,99 @@ function renderScoreMatrix(){
       const hue = 5 + (s/100)*115; // red -> green
       const bg = `hsl(${hue}, 45%, 20%)`;
       const fg = `hsl(${hue}, 65%, 68%)`;
-      html += `<td class="cell" style="background:${bg}"><span class="score" style="color:${fg}">${s.toFixed(0)}</span><span class="lbl">score /100</span></td>`;
+      html += `<td class="cell" tabindex="0" role="button" aria-label="${m} / ${meth} score breakdown" data-idx="${idx}" style="background:${bg}"><span class="score" style="color:${fg}">${s.toFixed(0)}</span><span class="lbl">score /100</span><span class="hint">tap for breakdown</span></td>`;
     });
     html += '</tr>';
   });
   html += '</table>';
   document.getElementById('scoreMatrixHost').innerHTML = html;
+
+  document.querySelectorAll('#scoreMatrixHost .cell[data-idx]').forEach(cell=>{
+    const open = ()=> openBreakdown(parseInt(cell.dataset.idx, 10));
+    cell.addEventListener('click', open);
+    cell.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); open(); } });
+  });
+
+  renderHeroStats();
+}
+
+function openBreakdown(idx){
+  const c = scoreComponents[idx];
+  if(!c) return;
+  const card = document.getElementById('breakdownCard');
+  card.innerHTML = `
+    <h3>${c.model} / ${c.method}</h3>
+    <div class="bd-sub">Composite score: <b style="color:var(--text)">${c.score.toFixed(1)} / 100</b> — five normalized components, averaged</div>
+    ${c.parts.map(p => `
+      <div class="bd-row">
+        <div class="bd-row-head"><span>${p.label}</span><b>${(p.norm*100).toFixed(0)}% <span style="color:var(--muted-2); font-weight:400;">(raw ${fmt(p.raw,3)})</span></b></div>
+        <div class="bd-track"><div class="bd-fill" style="width:${(p.norm*100).toFixed(1)}%"></div></div>
+      </div>
+    `).join('')}
+    <button class="bd-close" id="bdCloseBtn">Close</button>
+  `;
+  document.getElementById('breakdownOverlay').classList.add('open');
+  requestAnimationFrame(()=> card.querySelectorAll('.bd-fill').forEach(f=>{ }));
+  document.getElementById('bdCloseBtn').addEventListener('click', closeBreakdown);
+}
+function closeBreakdown(){ document.getElementById('breakdownOverlay').classList.remove('open'); }
+document.getElementById('breakdownOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'breakdownOverlay') closeBreakdown();
+});
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeBreakdown(); });
+
+function renderHeroStats(){
+  document.getElementById('heroDatasetsSub').textContent =
+    uniqueModels().length + ' models × ' + uniqueMethods().length + ' XAI methods';
+
+  countUp(document.getElementById('heroCombos'), rows.length, {decimals:0});
+
+  const byMethod = {};
+  scoreComponents.forEach(c => { (byMethod[c.method] ||= []).push(c.score); });
+  let topMethod = '—', topAvg = -Infinity;
+  Object.entries(byMethod).forEach(([meth, scores])=>{
+    const avg = scores.reduce((a,b)=>a+b,0) / scores.length;
+    if (avg > topAvg){ topAvg = avg; topMethod = meth; }
+  });
+  document.getElementById('heroTopMethod').textContent = topMethod;
+  document.getElementById('heroTopMethodSub').textContent = isFinite(topAvg) ? `avg score ${topAvg.toFixed(1)} / 100 across ${byMethod[topMethod]?.length || 0} runs` : '—';
+
+  const gtRows = rows.filter(r => r.part_overlap_ratio !== null && r.part_overlap_ratio !== undefined && r.part_overlap_ratio !== '');
+  if (gtRows.length){
+    const byMethodOverlap = {};
+    gtRows.forEach(r => { (byMethodOverlap[r.xai_method] ||= []).push(r.part_overlap_ratio); });
+    let weakest = '—', weakestAvg = Infinity;
+    Object.entries(byMethodOverlap).forEach(([meth, vals])=>{
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      if (avg < weakestAvg){ weakestAvg = avg; weakest = meth; }
+    });
+    document.getElementById('heroWeakest').textContent = weakest;
+    document.getElementById('heroWeakestSub').textContent = `avg part-overlap ${weakestAvg.toFixed(3)} (FunnyBirds)`;
+  } else {
+    document.getElementById('heroWeakest').textContent = '—';
+    document.getElementById('heroWeakestSub').textContent = 'load FunnyBirds data to see this';
+  }
 }
 
 function renderTable(){
   const cols = ['dataset','model','xai_method','accuracy','f1_macro','auc_macro_ovr','faithfulness_deletion_auc','faithfulness_insertion_auc','stability_cosine_sim','complexity_entropy_normalized','explanation_runtime_sec'];
   const labels = ['Dataset','Model','XAI Method','Accuracy','F1','AUC','Del. AUC','Ins. AUC','Stability','Entropy (norm)','Runtime (s)'];
-  let html = '<table><tr>' + labels.map(l=>`<th>${l}</th>`).join('') + '</tr>';
-  rows.forEach(r=>{
+
+  let displayRows = rows.slice();
+  if (sortCol){
+    displayRows.sort((a,b)=>{
+      const va = a[sortCol], vb = b[sortCol];
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sortDir;
+      return String(va ?? '').localeCompare(String(vb ?? '')) * sortDir;
+    });
+  }
+
+  let html = '<table><tr>' + cols.map((c,i)=>{
+    const active = sortCol===c;
+    const arrow = active ? (sortDir===1 ? '▲' : '▼') : '▲';
+    return `<th class="sortable${active?' active':''}" data-col="${c}">${labels[i]}<span class="arrow">${arrow}</span></th>`;
+  }).join('') + '</tr>';
+  displayRows.forEach(r=>{
     html += '<tr>';
     cols.forEach((c,i)=>{
       const v = r[c];
@@ -522,6 +777,14 @@ function renderTable(){
   html += '</table>';
   document.getElementById('tableHost').innerHTML = html;
 }
+
+document.getElementById('tableHost').addEventListener('click', (e)=>{
+  const th = e.target.closest('th.sortable');
+  if(!th) return;
+  const col = th.dataset.col;
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  renderTable();
+});
 
 function renderGroundTruth(){
   const panel = document.getElementById('groundTruthPanel');
@@ -574,6 +837,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
 });
 
 loadData(DEFAULT_CSV, 'Showing FINAL benchmark runs (CIFAR-10 + FunnyBirds, 60 samples/method, all trained checkpoints)');
+revealPanels();
 </script>
 </body>
 </html>
