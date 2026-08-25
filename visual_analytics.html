@@ -489,8 +489,8 @@ let charts = {};
 let scoreComponents = [];   // per-row breakdown, aligned with `rows` index, filled by renderScoreMatrix
 let sortCol = null, sortDir = 1;
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MODEL_COLORS = ['#00F0FF','#00BFFF','#1E90FF','#9D4EDD'];
-const XAI_COLORS = { gradcam:'#FF007F', shap:'#7DF9FF', lime:'#BFFF00' };
+const MODEL_COLORS = ['#818CF8','#2DD4BF','#60A5FA','#FB7185'];
+const XAI_COLORS = { gradcam:'#FB923C', shap:'#A78BFA', lime:'#34D399' };
 
 function fmt(v, d=3){ return (typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) : '—'; }
 
@@ -631,8 +631,8 @@ function renderCost(){
     type:'bar',
     data:{ labels: models,
       datasets:[
-        {label:'Model size (MB)', data:sizes, backgroundColor:'#5eead4', borderRadius:4, yAxisID:'y'},
-        {label:'Inference time (ms/batch)', data:times, backgroundColor:'#2c6b62', borderRadius:4, yAxisID:'y1'}
+        {label:'Model size (MB)', data:sizes, backgroundColor:'#2DD4BF', borderRadius:4, yAxisID:'y'},
+        {label:'Inference time (ms/batch)', data:times, backgroundColor:'#0F766E', borderRadius:4, yAxisID:'y1'}
       ]},
     options: baseOpts({
       scales:{
@@ -676,8 +676,8 @@ function renderFaithfulness(){
   charts.faith = new Chart(document.getElementById('faithChart'), {
     type:'bar',
     data:{ labels, datasets:[
-      {label:'Deletion AUC (↓ better)', data:del, backgroundColor:'#FF007F', borderRadius:6},
-      {label:'Insertion AUC (↑ better)', data:ins, backgroundColor:'#BFFF00', borderRadius:6}
+      {label:'Deletion AUC (↓ better)', data:del, backgroundColor:'#F43F5E', borderRadius:6},
+      {label:'Insertion AUC (↑ better)', data:ins, backgroundColor:'#10B981', borderRadius:6}
     ]},
     options: baseOpts()
   });
@@ -893,8 +893,8 @@ function renderGroundTruth(){
   charts.groundTruth = new Chart(document.getElementById('groundTruthChart'), {
     type:'bar',
     data:{ labels, datasets:[
-      {label:'Part overlap (↑ better — hits real bird part)', data:overlap, backgroundColor:'#BFFF00', borderRadius:6},
-      {label:'Clutter leakage (↓ better — wasted on distractors)', data:leakage, backgroundColor:'#FF007F', borderRadius:6}
+      {label:'Part overlap (↑ better — hits real bird part)', data:overlap, backgroundColor:'#10B981', borderRadius:6},
+      {label:'Clutter leakage (↓ better — wasted on distractors)', data:leakage, backgroundColor:'#F43F5E', borderRadius:6}
     ]},
     options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
   });
