@@ -1,0 +1,13 @@
+dataset,metric,model,xai_method,value
+CIFAR10,accuracy,efficientnet,gradcam,0.9653
+CIFAR10,faithfulness_deletion_auc,simplecnn,gradcam,0.149136
+CIFAR10,faithfulness_insertion_auc,efficientnet,gradcam,0.808263
+CIFAR10,stability_cosine_sim,resnet18,gradcam,0.997385
+CIFAR10,explanation_runtime_sec,simplecnn,gradcam,0.019242
+FUNNYBIRDS,accuracy,efficientnet,gradcam,0.972
+FUNNYBIRDS,faithfulness_deletion_auc,simplecnn,gradcam,0.067982
+FUNNYBIRDS,faithfulness_insertion_auc,efficientnet,gradcam,0.866525
+FUNNYBIRDS,stability_cosine_sim,simplecnn,shap,0.941256
+FUNNYBIRDS,explanation_runtime_sec,resnet18,gradcam,0.027239
+FUNNYBIRDS,part_overlap_ratio,simplecnn,shap,0.107717
+FUNNYBIRDS,clutter_leakage_ratio,efficientnet,gradcam,0.048894
