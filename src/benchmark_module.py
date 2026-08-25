@@ -313,7 +313,6 @@ def compute_explanation_metrics(model, image_tensor, target_class, explain_fn, d
 
     return result
 
-
 # ---------------------------------------------------------------------
 # 3. BENCHMARK RUNNER
 # ---------------------------------------------------------------------
@@ -496,14 +495,14 @@ def run_from_checkpoints(dataset_name, model_names, num_xai_samples, checkpoint_
         xai_samples = None  # falls back to sampling from test_loader inside engine.run()
     elif dataset_name == "funnybirds":
         _, test_loader, classes = get_funnybirds_loaders(
-            data_dir="../data/FunnyBirds", batch_size=32, image_size=224, num_workers=0
+            data_dir="data/FunnyBirds", batch_size=32, image_size=224, num_workers=0
         )
         # A second, path-aware view of the same test set — used only to pull
         # the small XAI sample pool with each image's ground-truth part_map
         # path attached. test_loader itself stays plain (images, labels) so
         # compute_model_metrics()/evaluate_model() aren't affected.
         _, test_loader_with_paths, _ = get_funnybirds_loaders(
-            data_dir="../data/FunnyBirds", batch_size=1, image_size=224, num_workers=0,
+            data_dir="data/FunnyBirds", batch_size=1, image_size=224, num_workers=0,
             return_paths=True,
         )
         xai_samples = []
