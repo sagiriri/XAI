@@ -489,8 +489,48 @@ let charts = {};
 let scoreComponents = [];   // per-row breakdown, aligned with `rows` index, filled by renderScoreMatrix
 let sortCol = null, sortDir = 1;
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const MODEL_COLORS = ['#738290','#A1B5D8','#C4D6B0','#E2C2C6'];
-const XAI_COLORS = { gradcam:'#B5A29D', shap:'#98A6D4', lime:'#A5C4A3' };
+
+const glowPlugin = {
+  id: 'glow',
+  beforeDatasetDraw: (chart, args) => {
+    const ctx = chart.ctx;
+    ctx.save();
+    const glowColor = chart.data.datasets[args.index].glowColor || 'rgba(0,0,0,0.5)';
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetY = 4;
+  },
+  afterDatasetDraw: (chart) => {
+    chart.ctx.restore();
+  }
+};
+Chart.register(glowPlugin);
+
+function getGradient(ctx, chartArea, colorStops) {
+  if (!chartArea) return colorStops[0];
+  const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+  gradient.addColorStop(0, colorStops[0]);
+  gradient.addColorStop(1, colorStops[1]);
+  return gradient;
+}
+
+const GRADIENTS = {
+  model: [
+    { stops: ['#4a00e0', '#8e2de2'], glow: 'rgba(142,45,226,0.5)' },
+    { stops: ['#00c6ff', '#0072ff'], glow: 'rgba(0,114,255,0.5)' },
+    { stops: ['#f5576c', '#f093fb'], glow: 'rgba(240,147,251,0.5)' },
+    { stops: ['#ff9966', '#ff5e62'], glow: 'rgba(255,94,98,0.5)' }
+  ],
+  xai: {
+    gradcam: { stops: ['#ff0844', '#ffb199'], glow: 'rgba(255,8,68,0.5)' },
+    shap: { stops: ['#b224ef', '#ff5dcd'], glow: 'rgba(178,36,239,0.5)' },
+    lime: { stops: ['#13b080', '#00f2fe'], glow: 'rgba(0,242,254,0.5)' }
+  },
+  perf: [
+    { stops: ['#4facfe', '#00f2fe'], glow: 'rgba(0,242,254,0.5)' },
+    { stops: ['#f093fb', '#f5576c'], glow: 'rgba(245,87,108,0.5)' }
+  ]
+};
 
 function fmt(v, d=3){ return (typeof v === 'number' && !isNaN(v)) ? v.toFixed(d) : '—'; }
 
@@ -607,11 +647,14 @@ function renderModelPerf(){
   ];
   const datasets = models.map((m,i)=>{
     const row = rows.find(r=>r.model===m);
+    const grad = GRADIENTS.model[i % GRADIENTS.model.length];
     return {
       label:m,
       data: metrics.map(met=>row ? row[met.key] : 0),
-      backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length],
-      borderRadius:4
+      backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, grad.stops),
+      glowColor: grad.glow,
+      borderRadius: 8,
+      borderSkipped: false
     };
   });
   destroy('modelPerf');
@@ -631,8 +674,16 @@ function renderCost(){
     type:'bar',
     data:{ labels: models,
       datasets:[
-        {label:'Model size (MB)', data:sizes, backgroundColor:'#9BA3B5', borderRadius:4, yAxisID:'y'},
-        {label:'Inference time (ms/batch)', data:times, backgroundColor:'#667085', borderRadius:4, yAxisID:'y1'}
+        {
+          label:'Model size (MB)', data:sizes, yAxisID:'y',
+          backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[0].stops),
+          glowColor: GRADIENTS.perf[0].glow, borderRadius: 8, borderSkipped: false
+        },
+        {
+          label:'Inference time (ms/batch)', data:times, yAxisID:'y1',
+          backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[1].stops),
+          glowColor: GRADIENTS.perf[1].glow, borderRadius: 8, borderSkipped: false
+        }
       ]},
     options: baseOpts({
       scales:{
@@ -647,12 +698,17 @@ function renderCost(){
 function renderRuntime(){
   const methods = uniqueMethods();
   const models = uniqueModels();
-  const datasets = models.map((m,i)=>({
-    label:m,
-    data: methods.map(meth => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.explanation_runtime_sec : 0; }),
-    backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length],
-    borderRadius:4
-  }));
+  const datasets = models.map((m,i)=>{
+    const grad = GRADIENTS.model[i % GRADIENTS.model.length];
+    return {
+      label:m,
+      data: methods.map(meth => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.explanation_runtime_sec : 0; }),
+      backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, grad.stops),
+      glowColor: grad.glow,
+      borderRadius: 8,
+      borderSkipped: false
+    };
+  });
   destroy('runtime');
   charts.runtime = new Chart(document.getElementById('runtimeChart'), {
     type:'bar',
@@ -676,8 +732,16 @@ function renderFaithfulness(){
   charts.faith = new Chart(document.getElementById('faithChart'), {
     type:'bar',
     data:{ labels, datasets:[
-      {label:'Deletion AUC (↓ better)', data:del, backgroundColor:'#D49A89', borderRadius:6},
-      {label:'Insertion AUC (↑ better)', data:ins, backgroundColor:'#88B09E', borderRadius:6}
+      {
+        label:'Deletion AUC (↓ better)', data:del,
+        backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[1].stops),
+        glowColor: GRADIENTS.perf[1].glow, borderRadius: 8, borderSkipped: false
+      },
+      {
+        label:'Insertion AUC (↑ better)', data:ins,
+        backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[0].stops),
+        glowColor: GRADIENTS.perf[0].glow, borderRadius: 8, borderSkipped: false
+      }
     ]},
     options: baseOpts()
   });
@@ -686,12 +750,17 @@ function renderFaithfulness(){
 function renderStability(){
   const models = uniqueModels();
   const methods = uniqueMethods();
-  const datasets = methods.map(meth => ({
-    label: meth,
-    data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.stability_cosine_sim : 0; }),
-    backgroundColor: XAI_COLORS[meth] || '#f0a868',
-    borderRadius:4
-  }));
+  const datasets = methods.map(meth => {
+    const grad = GRADIENTS.xai[meth] || GRADIENTS.model[0];
+    return {
+      label: meth,
+      data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.stability_cosine_sim : 0; }),
+      backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, grad.stops),
+      glowColor: grad.glow,
+      borderRadius: 8,
+      borderSkipped: false
+    };
+  });
   destroy('stability');
   charts.stability = new Chart(document.getElementById('stabilityChart'), {
     type:'bar',
@@ -703,12 +772,17 @@ function renderStability(){
 function renderComplexity(){
   const models = uniqueModels();
   const methods = uniqueMethods();
-  const datasets = methods.map(meth => ({
-    label: meth,
-    data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.complexity_entropy_normalized : 0; }),
-    backgroundColor: XAI_COLORS[meth] || '#f0a868',
-    borderRadius:4
-  }));
+  const datasets = methods.map(meth => {
+    const grad = GRADIENTS.xai[meth] || GRADIENTS.model[0];
+    return {
+      label: meth,
+      data: models.map(m => { const r = rows.find(r=>r.model===m && r.xai_method===meth); return r ? r.complexity_entropy_normalized : 0; }),
+      backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, grad.stops),
+      glowColor: grad.glow,
+      borderRadius: 8,
+      borderSkipped: false
+    };
+  });
   destroy('complexity');
   charts.complexity = new Chart(document.getElementById('complexityChart'), {
     type:'bar',
@@ -905,8 +979,16 @@ function renderGroundTruth(){
   charts.groundTruth = new Chart(document.getElementById('groundTruthChart'), {
     type:'bar',
     data:{ labels, datasets:[
-      {label:'Part overlap (↑ better — hits real bird part)', data:overlap, backgroundColor:'#88B09E', borderRadius:6},
-      {label:'Clutter leakage (↓ better — wasted on distractors)', data:leakage, backgroundColor:'#D49A89', borderRadius:6}
+      {
+        label:'Part overlap (↑ better — hits real bird part)', data:overlap,
+        backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[0].stops),
+        glowColor: GRADIENTS.perf[0].glow, borderRadius: 8, borderSkipped: false
+      },
+      {
+        label:'Clutter leakage (↓ better — wasted on distractors)', data:leakage,
+        backgroundColor: (ctx) => getGradient(ctx.chart.ctx, ctx.chart.chartArea, GRADIENTS.perf[1].stops),
+        glowColor: GRADIENTS.perf[1].glow, borderRadius: 8, borderSkipped: false
+      }
     ]},
     options: baseOpts({ scales:{ x:baseOpts().scales.x, y:Object.assign({},baseOpts().scales.y,{min:0,max:1}) } })
   });
