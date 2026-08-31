@@ -1,7 +1,7 @@
 """
 generate_results.py
 --------------------
-XAIBench — final results generator.
+IRIS-XAI — final results generator.
 
 Reads the already-completed master benchmark CSV (18 rows = 3 models x 3 XAI
 methods x 2 datasets, 60 samples each) and produces every downstream artifact
@@ -13,7 +13,7 @@ the master CSV.
 
 Usage (from D:\\XAI\\src, with the master CSV in D:\\XAI\\results):
     python generate_results.py
-    python generate_results.py --input ..\\results\\XAIBench_master_results.csv --outdir ..\\results\\final
+    python generate_results.py --input ..\\results\\IRIS-XAI_master_results.csv --outdir ..\\results\\final
 """
 
 import argparse
@@ -54,7 +54,7 @@ def load_master_csv(path: Path) -> pd.DataFrame:
         sys.exit(
             f"ERROR: master CSV not found at {path}\n"
             f"This script does not create or rerun benchmarks — point --input "
-            f"at your existing XAIBench_master_results.csv."
+            f"at your existing IRIS-XAI_master_results.csv."
         )
     df = pd.read_csv(path)
     missing = [c for c in REQUIRED_COLS if c not in df.columns]
@@ -75,7 +75,7 @@ def min_max_norm(s: pd.Series) -> pd.Series:
 
 def compute_explainability_score(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Composite Explainability Score (0-100), per XAIBench_Report_Draft.md sec 4.3:
+    Composite Explainability Score (0-100), per IRIS-XAI_Report_Draft.md sec 4.3:
     average of insertion AUC, (1 - deletion AUC), stability, (1 - max_sensitivity),
     (1 - complexity_entropy_normalized) -- each min-max normalized across the
     full run (all 18 rows) before averaging.
@@ -233,7 +233,7 @@ def df_to_md(df: pd.DataFrame) -> str:
 
 
 def write_markdown_summary(outdir: Path, model_perf, expl_matrix, fb_gt, rankings):
-    lines = ["# XAIBench — Final Results Summary\n",
+    lines = ["# IRIS-XAI — Final Results Summary\n",
              "Auto-generated from the master benchmark CSV. No experiments were rerun.\n"]
 
     lines.append("## Model Performance\n")
@@ -252,15 +252,15 @@ def write_markdown_summary(outdir: Path, model_perf, expl_matrix, fb_gt, ranking
     lines.append(df_to_md(rankings))
     lines.append("\n")
 
-    out_path = outdir / "XAIBench_final_summary.md"
+    out_path = outdir / "IRIS-XAI_final_summary.md"
     out_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Summary written to {out_path}")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Generate XAIBench final results from the master CSV.")
-    ap.add_argument("--input", default="../results/XAIBench_master_results.csv",
-                     help="Path to the master results CSV (default: ../results/XAIBench_master_results.csv)")
+    ap = argparse.ArgumentParser(description="Generate IRIS-XAI final results from the master CSV.")
+    ap.add_argument("--input", default="../results/IRIS-XAI_master_results.csv",
+                     help="Path to the master results CSV (default: ../results/IRIS-XAI_master_results.csv)")
     ap.add_argument("--outdir", default="../results/final",
                      help="Directory to write tables/figures into (default: ../results/final)")
     args = ap.parse_args()
@@ -292,7 +292,7 @@ def main():
     print(" - funnybirds_ground_truth.csv")
     print(" - method_rankings.csv")
     print(" - master_results_with_scores.csv")
-    print(" - XAIBench_final_summary.md")
+    print(" - IRIS-XAI_final_summary.md")
     if HAVE_PLOTTING:
         print(" - figures/*.png")
 

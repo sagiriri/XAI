@@ -1,5 +1,5 @@
 """
-XAIBench — FunnyBirds Ground-Truth Part Metric
+IRIS-XAI — FunnyBirds Ground-Truth Part Metric
 
 Every faithfulness/stability/complexity metric in the Benchmark Engine so
 far is *self-referential* — it checks whether an explanation is internally

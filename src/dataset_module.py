@@ -1,5 +1,5 @@
 """
-XAIBench — Dataset Module
+IRIS-XAI — Dataset Module
 
 Handles loading and preprocessing for two dataset types:
   1. CIFAR-10 / CIFAR-100  -> used to train/test the Model Module (CNN, ResNet, EfficientNet)

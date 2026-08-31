@@ -1,5 +1,5 @@
 """
-XAIBench environment sanity check.
+IRIS-XAI environment sanity check.
 Run this once after installing everything to confirm the core libraries
 actually work together, not just that pip install succeeded.
 """

@@ -4,7 +4,7 @@ settle whether a 5th canonical part color exists (for "tail"), since it
 never appeared in the single image checked so far — likely occluded behind
 the body/wing from that particular camera angle, not colorless.
 
-Run with xaibench-env active:
+Run with iris-xai-env active:
     python scan_all_part_colors.py
 """
 

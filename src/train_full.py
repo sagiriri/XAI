@@ -1,5 +1,5 @@
 """
-XAIBench — Full Training Script
+IRIS-XAI — Full Training Script
 
 Trains all three models (SimpleCNN, ResNet18, EfficientNet) on the full
 CIFAR-10 and FunnyBirds datasets, with:
@@ -10,7 +10,7 @@ CIFAR-10 and FunnyBirds datasets, with:
   - Mixed precision (torch.cuda.amp) to fit comfortably in 4GB VRAM
   - Skip-if-already-trained logic (pass --force to retrain anyway)
 
-Usage (from src/, with xaibench-env active):
+Usage (from src/, with iris-xai-env active):
     python train_full.py
     python train_full.py --datasets cifar10                 # just one dataset
     python train_full.py --models resnet18 efficientnet     # just some models

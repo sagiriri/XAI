@@ -1,5 +1,5 @@
 """
-XAIBench — Model Module
+IRIS-XAI — Model Module
 
 Provides a unified interface for three model families:
   1. SimpleCNN   -> lightweight custom baseline, trained from scratch
@@ -99,7 +99,7 @@ def _build_efficientnet(num_classes: int, pretrained: bool):
 
 def get_model(model_name: str, num_classes: int = 10, pretrained: bool = True) -> nn.Module:
     """
-    Factory function — the single entry point the rest of XAIBench should use.
+    Factory function — the single entry point the rest of IRIS-XAI should use.
 
     Args:
         model_name: one of "simplecnn", "resnet18", "resnet50", "efficientnet"
@@ -235,7 +235,7 @@ def get_model_size_mb(model: nn.Module) -> float:
     """
     Returns the model's parameter storage size in MB. Used by the Benchmark
     Engine's "Model Size" metric — one of the accuracy/speed/size trade-offs
-    the whole XAIBench comparison is built around.
+    the whole IRIS-XAI comparison is built around.
     """
     total_bytes = sum(p.numel() * p.element_size() for p in model.parameters())
     return total_bytes / (1024 ** 2)

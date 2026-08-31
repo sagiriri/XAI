@@ -1,5 +1,5 @@
 """
-XAIBench — XAI Module
+IRIS-XAI — XAI Module
 
 Provides a unified interface for three explanation methods:
   1. Grad-CAM          -> fast, CNN-specific, produces a spatial heatmap

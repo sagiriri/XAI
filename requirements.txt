@@ -1,4 +1,4 @@
-# XAIBench — requirements
+# IRIS-XAI — requirements
 #
 # IMPORTANT: install torch/torchvision/torchaudio SEPARATELY first, with the
 # CUDA-enabled wheel index — a plain `pip install -r requirements.txt` will
@@ -16,7 +16,7 @@
 # "no matching distribution" error on the CUDA index).
 #
 # For a byte-exact match of this project's original environment, run
-# `pip freeze > requirements-exact.txt` inside the activated xaibench-env
+# `pip freeze > requirements-exact.txt` inside the activated iris-xai-env
 # instead of relying on this file's unpinned versions.
 
 timm

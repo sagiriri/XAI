@@ -1,7 +1,7 @@
 """
 One-off script to peek inside a CIFAR-10 batch file — these are Python
 pickle files, not something you can double-click open. Run with
-xaibench-env active.
+iris-xai-env active.
 """
 
 import pickle

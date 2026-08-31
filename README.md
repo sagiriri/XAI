@@ -1,12 +1,12 @@
-# XAIBench — Explainable AI Benchmark Platform
+# IRIS-XAI — Image Recognition Interpretability & Scoring
 
 A benchmark platform that trains multiple image classification models, applies multiple XAI (explainable AI) methods to each, and scores every combination on faithfulness, stability, complexity, runtime — and, uniquely, **ground-truth correctness** using a synthetic dataset where the "right answer" is actually known.
 
-Most XAI demos show you one method on one model and let you eyeball whether the heatmap looks reasonable. XAIBench instead asks: *of these three explanation methods, which one is actually telling the truth?*
+Most XAI demos show you one method on one model and let you eyeball whether the heatmap looks reasonable. IRIS-XAI instead asks: *of these three explanation methods, which one is actually telling the truth?*
 
 ## Primary comparison baseline
 
-This project is evaluated directly against Skliarov et al.'s 2025 *Scientific Reports* study, [*"A comparative evaluation of explainability techniques for image data"*](https://doi.org/10.1038/s41598-025-25839-y), which benchmarks six XAI methods (LIME, SHAP, Grad-CAM, Grad-CAM++, Integrated Gradients, SmoothGrad) across three datasets and three architectures using five function-grounded metrics (fidelity, stability, identity, separability, runtime). XAIBench narrows the method/dataset scope (3 methods, 2 datasets) in exchange for adding a dimension that study does not have: **ground-truth correctness** on the FunnyBirds dataset, where the correct answer for what an explanation should highlight is actually annotated rather than inferred from the model's own behavior. See `XAIBench_Report_Draft.md` §6.5 for a full, scope-honest comparison of findings between the two studies.
+This project is evaluated directly against Skliarov et al.'s 2025 *Scientific Reports* study, [*"A comparative evaluation of explainability techniques for image data"*](https://doi.org/10.1038/s41598-025-25839-y), which benchmarks six XAI methods (LIME, SHAP, Grad-CAM, Grad-CAM++, Integrated Gradients, SmoothGrad) across three datasets and three architectures using five function-grounded metrics (fidelity, stability, identity, separability, runtime). IRIS-XAI narrows the method/dataset scope (3 methods, 2 datasets) in exchange for adding a dimension that study does not have: **ground-truth correctness** on the FunnyBirds dataset, where the correct answer for what an explanation should highlight is actually annotated rather than inferred from the model's own behavior. See `IRIS-XAI_Report_Draft.md` §6.5 for a full, scope-honest comparison of findings between the two studies.
 
 ## What makes this different
 
@@ -34,9 +34,9 @@ Dataset Module → Model Module → XAI Module → Benchmark Engine → Visual A
 ## Setup
 
 ```bash
-python -m venv xaibench-env
-# Windows: xaibench-env\Scripts\activate
-# Mac/Linux: source xaibench-env/bin/activate
+python -m venv iris-xai-env
+# Windows: iris-xai-env\Scripts\activate
+# Mac/Linux: source iris-xai-env/bin/activate
 
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
@@ -74,9 +74,9 @@ FunnyBirds itself isn't included in this repo (see `.gitignore`) — download it
 
 ## Results
 
-Full results, charts, and the composite Explainability Score matrix are in `visual_analytics.html` — open it directly, no server needed. Key finding: **Grad-CAM consistently shows the highest ground-truth part-overlap and lowest clutter-leakage** of the three methods tested here, meaning it isn't just scoring well on self-referential faithfulness metrics — it's actually pointing at the correct anatomical features more reliably than SHAP or LIME. This finding is scoped to the three methods XAIBench tests; see `XAIBench_Report_Draft.md` §6.5 for how it relates to the six-method ranking in the primary baseline study, where gradient-based methods outside this project's scope (Integrated Gradients, SmoothGrad) score highest on fidelity/stability.
+Full results, charts, and the composite Explainability Score matrix are in `visual_analytics.html` — open it directly, no server needed. Key finding: **Grad-CAM consistently shows the highest ground-truth part-overlap and lowest clutter-leakage** of the three methods tested here, meaning it isn't just scoring well on self-referential faithfulness metrics — it's actually pointing at the correct anatomical features more reliably than SHAP or LIME. This finding is scoped to the three methods IRIS-XAI tests; see `IRIS-XAI_Report_Draft.md` §6.5 for how it relates to the six-method ranking in the primary baseline study, where gradient-based methods outside this project's scope (Integrated Gradients, SmoothGrad) score highest on fidelity/stability.
 
-See `XAIBench_Report_Draft.md` for the full write-up including methodology, the baseline comparison, limitations, and the engineering issues found along the way.
+See `IRIS-XAI_Report_Draft.md` for the full write-up including methodology, the baseline comparison, limitations, and the engineering issues found along the way.
 
 ## Notable engineering issues found & fixed
 

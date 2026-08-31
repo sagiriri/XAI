@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Continue"
 
 Write-Host "==============================================="
-Write-Host " XAIBench FULL OVERNIGHT BENCHMARK"
+Write-Host " IRIS-XAI FULL OVERNIGHT BENCHMARK"
 Write-Host "==============================================="
 
 $datasets = @("cifar10", "funnybirds")

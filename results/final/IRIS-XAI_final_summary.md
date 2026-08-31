@@ -1,4 +1,4 @@
-# XAIBench — Final Results Summary
+# IRIS-XAI — Final Results Summary
 
 Auto-generated from the master benchmark CSV. No experiments were rerun.
 

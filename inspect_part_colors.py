@@ -2,7 +2,7 @@
 One-off inspection script — NOT part of the pipeline, just for figuring out
 the exact canonical color palette FunnyBirds uses in train_part_map/.
 
-Run from anywhere (doesn't need xaibench-env activated, just PIL):
+Run from anywhere (doesn't need iris-xai-env activated, just PIL):
     python inspect_part_colors.py
 
 Prints every distinct color in the image along with how many pixels use it,
