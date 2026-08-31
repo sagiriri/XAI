@@ -1,4 +1,4 @@
-# IRIS-XAI: Image Recognition Interpretability & Scoring
+# IRIS-XAI: Image Recognition Interpretability & Scoring — A Benchmark Platform for Explainable Image Classification
 
 *Final results — 60 samples per (model × XAI method), both datasets, all fixes applied.*
 
